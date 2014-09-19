@@ -10,9 +10,9 @@ public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
 	public static Contest contest = new Contest("Contest1", 60*60000);
 	static{
-		contest.problems.put("Problem 1", new Problem("Problem 1", new String[]{"j1.1.in", "j1.2.in", "j1.3.in", "j1.4.in", "j1.5.in", "j1.6.in", "j1.7.in", "j1.8.in", "j1.9.in", "j1.10.in"}, new String[]{"j1.1.out", "j1.2.out", "j1.3.out", "j1.4.out", "j1.5.out", "j1.6.out", "j1.7.out", "j1.8.out", "j1.9.out", "j1.10.out"}));
-		contest.problems.put("Problem 2", new Problem("Problem 2", new String[]{"j2.1.in", "j2.2.in", "j2.3.in", "j2.4.in", "j2.5.in", "j2.6.in", "j2.7.in", "j2.8.in", "j2.9.in", "j2.10.in"}, new String[]{"j2.1.out", "j2.2.out", "j2.3.out", "j2.4.out", "j2.5.out", "j2.6.out", "j2.7.out", "j2.8.out", "j2.9.out", "j2.10.out"}));
-		contest.problems.put("Problem 3", new Problem("Problem 3", new String[]{"j3.1.in"}, new String[]{"j3.1.out"}));
+		contest.problems.put("Problem 1", new Problem("Contest1/Problem 1", new String[]{"j1.1.in", "j1.2.in", "j1.3.in", "j1.4.in", "j1.5.in", "j1.6.in", "j1.7.in", "j1.8.in", "j1.9.in", "j1.10.in"}, new String[]{"j1.1.out", "j1.2.out", "j1.3.out", "j1.4.out", "j1.5.out", "j1.6.out", "j1.7.out", "j1.8.out", "j1.9.out", "j1.10.out"}));
+		contest.problems.put("Problem 2", new Problem("Contest1/Problem 2", new String[]{"j2.1.in", "j2.2.in", "j2.3.in", "j2.4.in", "j2.5.in", "j2.6.in", "j2.7.in", "j2.8.in", "j2.9.in", "j2.10.in"}, new String[]{"j2.1.out", "j2.2.out", "j2.3.out", "j2.4.out", "j2.5.out", "j2.6.out", "j2.7.out", "j2.8.out", "j2.9.out", "j2.10.out"}));
+		contest.problems.put("Problem 3", new Problem("Contest1/Problem 3", new String[]{"j3.1.in"}, new String[]{"j3.1.out"}));
 	}
 	public static boolean contest_in_progress = true;
 	public static Thread server_thread = new Thread(){
@@ -152,8 +152,9 @@ class User {
 		public void run(){
 			try {
 				InputStream socket_input = socket.getInputStream();
-				BufferedReader br = new BufferedReader(new InputStreamReader(socket_input));
+				OutputStream socket_output = socket.getOutputStream();
 				
+//				BufferedReader br = new BufferedReader(new InputStreamReader(socket_input));
 //				String name = br.readLine();
 //				Problem problem = Server.contest.problems.get(br.readLine());
 //				byte[] file_array = new byte [Integer.parseInt(br.readLine())];
@@ -184,10 +185,10 @@ class User {
 				    fin.close();
 				    out.close();
 				    BufferedReader in = new BufferedReader(new InputStreamReader(execute.getInputStream()));
-				    fin = new BufferedReader(new FileReader(problem.path+"/"+problem.output_file_names));
+				    fin = new BufferedReader(new FileReader(problem.path+"/"+problem.output_file_names[caseNo]));
 				    if(!problem.path.equals("Problem 3")){
 				    	boolean working = true;
-					    while ((line = in.readLine()) != null&&working) {
+					    while ((line = in.readLine()) != null && working) {
 					        if(!line.equals(fin.readLine())){
 					        	working = false;
 					        }
@@ -199,19 +200,23 @@ class User {
 				    	if(check_p3(in, fin)) passed++;
 				    }
 				    in = new BufferedReader(new InputStreamReader(execute.getErrorStream()));
-				    while ((line = in.readLine()) != null) {
-				        System.out.println(line);
+				    line = in.readLine();
+				    if (line != null) {
+					    socket_output.write(("Case #" + (caseNo + 1) + ": ").getBytes());
+					    do {
+					        socket_output.write((line + '\n').getBytes());
+					    } while ((line = in.readLine()) != null);
 				    }
 				    execute.waitFor();
-				    BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-				    writer.write(passed+"/"+problem.input_file_names.length+ "\n");
-				    writer.close();
+				    
 			    }
+			    
+			    socket_output.write((passed + "/" + problem.input_file_names.length).getBytes());
+			    socket_output.write((byte)'\u0004');
 			    //socket.getOutputStream();passed+"/"+problem.input_file_names.length;
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-			
 		}
 	}
 	public boolean check_p3(BufferedReader in, BufferedReader fin){
