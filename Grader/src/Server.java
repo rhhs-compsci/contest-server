@@ -3,13 +3,15 @@ import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import java.lang.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.TableColumn;
 
 public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
-	public static Contest contest = new Contest("Contest1", 60*60000);
+	public static Contest contest = new Contest("contest1.txt");
 //	static{
 //		contest.problems.put("Problem 1", new Problem("Contest1/Problem 1", new String[]{"j1.1.in", "j1.2.in", "j1.3.in", "j1.4.in", "j1.5.in", "j1.6.in", "j1.7.in", "j1.8.in", "j1.9.in", "j1.10.in"}, new String[]{"j1.1.out", "j1.2.out", "j1.3.out", "j1.4.out", "j1.5.out", "j1.6.out", "j1.7.out", "j1.8.out", "j1.9.out", "j1.10.out"}));
 //		contest.problems.put("Problem 2", new Problem("Contest1/Problem 2", new String[]{"j2.1.in", "j2.2.in", "j2.3.in", "j2.4.in", "j2.5.in", "j2.6.in", "j2.7.in", "j2.8.in", "j2.9.in", "j2.10.in"}, new String[]{"j2.1.out", "j2.2.out", "j2.3.out", "j2.4.out", "j2.5.out", "j2.6.out", "j2.7.out", "j2.8.out", "j2.9.out", "j2.10.out"}));
@@ -96,7 +98,11 @@ class Standings_Panel extends JPanel {
 		JPanel bodyPanel = new JPanel();
 		contentPane.add(bodyPanel, BorderLayout.CENTER);
 		
-		JTable leaderboard = new JTable();
+		JTable leaderboard = new JTable() {
+			public boolean isCellEditable(int row, int column) {
+				return false;
+			}
+		};
 		bodyPanel.add(leaderboard);
 		
 		JPanel buttonPanel = new JPanel();
@@ -146,23 +152,15 @@ class Standings_Panel extends JPanel {
 //			}
 //			@Override
 //			public void mouseEntered(MouseEvent arg0) {
-//				// TODO Auto-generated method stub
 //			}
 //			@Override
 //			public void mouseExited(MouseEvent arg0) {
-//				// TODO Auto-generated method stub
-//				
 //			}
 //			@Override
 //			public void mousePressed(MouseEvent arg0) {
-//				// TODO Auto-generated method stub
-//				
 //			}
-//
 //			@Override
 //			public void mouseReleased(MouseEvent arg0) {
-//				// TODO Auto-generated method stub
-//				
 //			}
 //			
 //		});
@@ -216,9 +214,18 @@ class User {
 				Process compile = Runtime.getRuntime().exec("javac "+fileName);
 				compile.waitFor();
 				
+				System.out.println("File recieved from " + name);
+				
+				if (problem == null) {
+					System.out.println("Invalid problem name, quitting");
+					socket_output.write("Problem name not valid\u0004".getBytes());
+					return;
+				}
+				
 			    int passed = 0;
-			    for(int caseNo = 0; caseNo < problem.input_file_names.length; caseNo++){
-					Process execute =  Runtime.getRuntime().exec("java "+fileName.substring(0, fileName.lastIndexOf('.')));
+			    for(int caseNo = 0; caseNo < problem.input_file_names.length; caseNo++)
+			    {
+					Process execute =  Runtime.getRuntime().exec("java -Djava.security.manager -Djava.security.policy=security.policy " + fileName.substring(0, fileName.lastIndexOf('.')));
 					String line = null;
 					PrintWriter out = new PrintWriter(new OutputStreamWriter(execute.getOutputStream()));
 				    BufferedReader fin = new BufferedReader(new FileReader(problem.path+"/"+problem.input_file_names[caseNo]));
@@ -254,7 +261,7 @@ class User {
 			    }
 			    Calendar now = Calendar.getInstance();
 			    socket_output.write((passed + "/" + problem.input_file_names.length).getBytes());
-			    System.out.printf("%d:%02d%02d: %s got %d/%d on %s%n", now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), now.get(Calendar.SECOND), name, passed, problem.input_file_names.length, probName);
+			    System.out.printf("%d:%02d:%02d: %s got %d/%d on %s%n", now.get(Calendar.HOUR_OF_DAY), now.get(Calendar.MINUTE), now.get(Calendar.SECOND), name, passed, problem.input_file_names.length, probName);
 			    socket_output.write((byte)'\u0004');
 			    //socket.getOutputStream();passed+"/"+problem.input_file_names.length;
 			} catch (Exception e) {
@@ -330,6 +337,7 @@ class Contest{
 		problems = new HashMap<String, Problem>();
 	}
 	Contest(String filename) {
+		problems = new HashMap<String, Problem>();
 		BufferedReader br;
 		try
 		{
