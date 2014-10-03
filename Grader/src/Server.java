@@ -3,24 +3,26 @@ import java.awt.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.lang.*;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.table.TableColumn;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.AbstractTableModel;
+import javax.swing.table.TableModel;
 public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
-	public static Contest contest = new Contest("Contest3", 1412284273947L);
-	static{
-		
-		contest.problems.put("bear", new Problem("Contest1/Problem 1", "Problem 1", 10, new String[]{"j1.1.in", "j1.2.in", "j1.3.in", "j1.4.in", "j1.5.in", "j1.6.in", "j1.7.in", "j1.8.in", "j1.9.in", "j1.10.in"}, new String[]{"j1.1.out", "j1.2.out", "j1.3.out", "j1.4.out", "j1.5.out", "j1.6.out", "j1.7.out", "j1.8.out", "j1.9.out", "j1.10.out"}));
-		contest.problems.put("rsa", new Problem("Contest1/Problem 2", "Problem 2", 20, new String[]{"j2.1.in", "j2.2.in", "j2.3.in", "j2.4.in", "j2.5.in", "j2.6.in", "j2.7.in", "j2.8.in", "j2.9.in", "j2.10.in"}, new String[]{"j2.1.out", "j2.2.out", "j2.3.out", "j2.4.out", "j2.5.out", "j2.6.out", "j2.7.out", "j2.8.out", "j2.9.out", "j2.10.out"}));
-		contest.problems.put("four-word", new Problem("Contest1/Problem 3", "Problem 3", 50, new String[]{"j3.1.in"}, new String[]{"j3.1.out"}));
-		contest.problems.put("cold", new Problem("Contest2/p1", "It's Cold Here!", 10, new String[]{"p1.1.in", "p1.2.in", "p1.3.in", "p1.4.in", "p1.5.in"}, new String[]{"p1.1.out", "p1.2.out", "p1.3.out", "p1.4.out", "p1.5.out"}));
-		contest.problems.put("icon", new Problem("Contest2/p2", "Icon Scaling", 20, new String[]{"p2.1.in", "p2.2.in", "p2.3.in", "p2.4.in", "p2.5.in"}, new String[]{"p2.1.out", "p2.2.out", "p2.3.out", "p2.4.out", "p2.5.out"}));
-		contest.problems.put("friends", new Problem("Contest2/p3", "Friends", 50, new String[]{"p3.1.in", "p3.2.in", "p3.3.in", "p3.4.in", "p3.5.in"}, new String[]{"p3.1.out", "p3.2.out", "p3.3.out", "p3.4.out", "p3.5.out"}));
-
-	}
+	public static Contest contest = new Contest("Contest3.txt");
+//	public static Contest contest = new Contest("Contest3", 1412284273947L);
+//	static{
+//		
+//		contest.problems.put("bear", new Problem("Contest1/Problem 1", "Problem 1", 10, new String[]{"j1.1.in", "j1.2.in", "j1.3.in", "j1.4.in", "j1.5.in", "j1.6.in", "j1.7.in", "j1.8.in", "j1.9.in", "j1.10.in"}, new String[]{"j1.1.out", "j1.2.out", "j1.3.out", "j1.4.out", "j1.5.out", "j1.6.out", "j1.7.out", "j1.8.out", "j1.9.out", "j1.10.out"}));
+//		contest.problems.put("rsa", new Problem("Contest1/Problem 2", "Problem 2", 20, new String[]{"j2.1.in", "j2.2.in", "j2.3.in", "j2.4.in", "j2.5.in", "j2.6.in", "j2.7.in", "j2.8.in", "j2.9.in", "j2.10.in"}, new String[]{"j2.1.out", "j2.2.out", "j2.3.out", "j2.4.out", "j2.5.out", "j2.6.out", "j2.7.out", "j2.8.out", "j2.9.out", "j2.10.out"}));
+//		contest.problems.put("four-word", new Problem("Contest1/Problem 3", "Problem 3", 50, new String[]{"j3.1.in"}, new String[]{"j3.1.out"}));
+//		contest.problems.put("cold", new Problem("Contest2/p1", "It's Cold Here!", 10, new String[]{"p1.1.in", "p1.2.in", "p1.3.in", "p1.4.in", "p1.5.in"}, new String[]{"p1.1.out", "p1.2.out", "p1.3.out", "p1.4.out", "p1.5.out"}));
+//		contest.problems.put("icon", new Problem("Contest2/p2", "Icon Scaling", 20, new String[]{"p2.1.in", "p2.2.in", "p2.3.in", "p2.4.in", "p2.5.in"}, new String[]{"p2.1.out", "p2.2.out", "p2.3.out", "p2.4.out", "p2.5.out"}));
+//		contest.problems.put("friends", new Problem("Contest2/p3", "Friends", 50, new String[]{"p3.1.in", "p3.2.in", "p3.3.in", "p3.4.in", "p3.5.in"}, new String[]{"p3.1.out", "p3.2.out", "p3.3.out", "p3.4.out", "p3.5.out"}));
+//
+//	}
 	public static boolean contest_in_progress = true;
 	public static class ServerThread extends Thread {
 		@Override
@@ -48,6 +50,7 @@ public class Server {
 						e.printStackTrace();
 					}
 				}
+				server_socket.close();
 				System.out.println("Contest Over");
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -247,10 +250,35 @@ class Contest{
 	String path;
 	long end_time;
 	HashMap<String, Problem> problems;
-	Contest(String path, long end_time){
+	Contest(String path, long length){
 		this.path = path;
-		this.end_time = end_time;
+		end_time = System.currentTimeMillis() + length;
 		problems = new HashMap<String, Problem>();
+	}
+	Contest(String filename) {
+		problems = new HashMap<String, Problem>();
+		BufferedReader br;
+		try
+		{
+			br = new BufferedReader(new FileReader(filename));
+			end_time = System.currentTimeMillis() + Long.parseLong(br.readLine());
+			String name = br.readLine();
+			String reference = br.readLine();
+			String probPath = br.readLine();
+			int weight = Integer.parseInt(br.readLine());
+			String[] inFiles = new String[Integer.parseInt(br.readLine())];
+			String[] outFiles = new String[inFiles.length];
+			for (int i = 0; i < inFiles.length; i++) {
+				String file = br.readLine();
+				inFiles[i] = file + ".in";
+				outFiles[i] = file + ".out";
+			}
+			problems.put(reference, new Problem(probPath, name, weight, inFiles, outFiles));
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+		}
 	}
 }
 class Problem{
@@ -265,7 +293,6 @@ class Problem{
 		this.input_file_names = input_file_names;
 		this.output_file_names = output_file_names;
 		this.weight = weight;
-		Server.contest.problems.put(name, this);
 	}
 }
 class Frame extends JFrame{
