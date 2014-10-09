@@ -6,6 +6,7 @@ import java.util.*;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
+import javax.swing.table.DefaultTableModel;
 
 public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
@@ -72,7 +73,7 @@ public class Server {
 		{
 			columns[1 + i] = contest.problems.get(contest.problems.keySet().toArray()[i]).name;
 		}
-		leaderboard = new JTable(new Object[1][columns.length], columns);
+		leaderboard = new JTable(new DefaultTableModel(columns, 0));
 		JScrollPane scrollPane = new JScrollPane(leaderboard);
 		leaderboard.setFillsViewportHeight(true);
 		frame.getContentPane().setLayout(new BorderLayout());
@@ -135,19 +136,21 @@ public class Server {
 			@Override
 			public int compare(String[] o1, String[] o2)
 			{
-				return o1[lastColumn].compareTo(o2[lastColumn]);
+				return ((Integer) Integer.parseInt(o1[lastColumn])).compareTo(Integer.parseInt(o2[lastColumn]));
 			}
 		});
 		for (int i = 0; i < data.length; i++)
 		{
 			data[i] = c.get(i);
 		}
+		DefaultTableModel model = (DefaultTableModel) leaderboard.getModel();
+		while (model.getRowCount() > 0)
+		{
+			model.removeRow(0);
+		}
 		for (int i = 0; i < data.length; i++)
 		{
-			for (int j = 0; j < data[0].length; j++)
-			{
-				leaderboard.setValueAt(data[i][j], i, j);
-			}
+			model.addRow(data[i]);
 		}
 	}
 }
