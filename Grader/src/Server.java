@@ -10,7 +10,7 @@ import javax.swing.table.DefaultTableModel;
 
 public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
-	public static HashMap<String, Contestant> contestants = new HashMap<String, Contestant>();
+	public static ArrayList<Contestant> contestants = new ArrayList<Contestant>();
 	public static Contest contest = new Contest("Contest4.txt");
 	public static JFrame frame;
 	public static JTable leaderboard;
@@ -126,31 +126,31 @@ public class Server {
 		{
 			columns[1 + i] = contest.problems.get(contest.problems.keySet().toArray()[i]).name;
 		}
-		String[][] data = new String[contestants.size()][columns.length];
-		ArrayList<String[]> c = new ArrayList<String[]>();
-		for (int i = 0; i < contestants.size(); i++)
-		{
-			c.add(contestants.get(contestants.keySet().toArray()[i]).asStringArray());
-		}
-		Collections.sort(c, new Comparator<String[]>() {
+		Collections.sort(contestants, new Comparator<Contestant>() {
 			@Override
-			public int compare(String[] o1, String[] o2)
+			public int compare(Contestant o1, Contestant o2)
 			{
-				return ((Integer) Integer.parseInt(o1[lastColumn])).compareTo(Integer.parseInt(o2[lastColumn]));
+				Integer sum1 = 0;
+				Integer sum2 = 0;
+				for (int i = 0; i < o1.scores.length; i++)
+				{
+					sum1 += o1.scores[i];
+				}
+				for (int i = 0; i < o2.scores.length; i++)
+				{
+					sum2 += o2.scores[i];
+				}
+				return sum1.compareTo(sum2);
 			}
 		});
-		for (int i = 0; i < data.length; i++)
-		{
-			data[i] = c.get(i);
-		}
 		DefaultTableModel model = (DefaultTableModel) leaderboard.getModel();
 		while (model.getRowCount() > 0)
 		{
 			model.removeRow(0);
 		}
-		for (int i = 0; i < data.length; i++)
+		for (int i = 0; i < contestants.size(); i++)
 		{
-			model.addRow(data[i]);
+			model.addRow(contestants.toArray());
 		}
 	}
 }
@@ -177,11 +177,6 @@ class Contestant
 		}
 		r[r.length - 1] = "" + total;
 		return r;
-	}
-	
-	public void setScore(int i, int s)
-	{
-		scores[i] = s;
 	}
 }
 class User {
@@ -298,14 +293,25 @@ class User {
 				    file_writer.close();
 			    }
 			    System.out.println(name+": "+problem.name+" "+passed + "/" + problem.input_file_names.length+" "+score);
-			    if (Server.contestants.containsKey(name))
+			    boolean exists = false;
+			    int index = 0;
+			    for (int i = 0; i < Server.contestants.size(); i++)
 			    {
-			    	Server.contestants.get(name).scores[probNo] = Math.max(score, Server.contestants.get(name).scores[probNo]); 
+			    	if (Server.contestants.get(i).name.equals(name))
+			    	{
+			    		exists = true;
+			    		index = i;
+			    		break;
+			    	}
+			    }
+			    if (exists)
+			    {
+			    	Server.contestants.get(index).scores[probNo] = Math.max(score, Server.contestants.get(index).scores[probNo]); 
 			    }
 			    else
 			    {
-			    	Server.contestants.put(name, new Contestant(Server.contest.problems.size(), name));
-			    	Server.contestants.get(name).scores[probNo] = score;
+			    	Server.contestants.add(new Contestant(Server.contest.problems.size(), name));
+			    	Server.contestants.get(Server.contestants.size() - 1).scores[probNo] = score;
 			    }
 			    Server.updateLeaderboard();
 			} catch (Exception e) {
@@ -413,7 +419,8 @@ class Contest{
 					inFiles[i] = file + ".in";
 					outFiles[i] = file + ".out";
 				}
-				problems.put(reference, new Problem(probPath, name, weight, probNo++, inFiles, outFiles));
+				problems.put(reference, new Problem(probPath, name, weight, probNo, inFiles, outFiles));
+				probNo++;
 			}
 		}
 		catch (Exception e)
