@@ -1,17 +1,18 @@
-import java.awt.event.*;
 import java.awt.*;
+import java.awt.event.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.event.TableModelListener;
 import javax.swing.table.AbstractTableModel;
-import javax.swing.table.TableModel;
+
 public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
-	public static Contest contest = new Contest("Contest3.txt");
+	public static HashMap<String, Contestant> contestants = new HashMap<String, Contestant>();
+	public static Contest contest = new Contest("Contest4.txt");
+	public static JFrame frame;
+	public static JTable leaderboard;
 //	public static Contest contest = new Contest("Contest3", 1412284273947L);
 //	static{
 //		
@@ -23,7 +24,7 @@ public class Server {
 //		contest.problems.put("friends", new Problem("Contest2/p3", "Friends", 50, new String[]{"p3.1.in", "p3.2.in", "p3.3.in", "p3.4.in", "p3.5.in"}, new String[]{"p3.1.out", "p3.2.out", "p3.3.out", "p3.4.out", "p3.5.out"}));
 //
 //	}
-	public static boolean contest_in_progress = true;
+	public static boolean contest_in_progress = false;
 	public static class ServerThread extends Thread {
 		@Override
 		public void run(){
@@ -32,6 +33,7 @@ public class Server {
 				ServerSocket server_socket = new ServerSocket(63400, 0, host_address);
 				System.out.println(host_address);
 				//long end_time = contest.length+System.currentTimeMillis();
+				contest_in_progress = true;
 				while(contest_in_progress){
 					if(System.currentTimeMillis() > contest.end_time){
 						contest_in_progress = false;
@@ -58,10 +60,125 @@ public class Server {
 		}
 	};
 	public static void main(String[] args){
-		Frame frame = new Frame();
+//		Frame frame = new Frame();
+//		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//		frame.pack();
+//		frame.setVisible(true);
+		frame = new JFrame("Computer Science Club Contest");
+		String[] columns = new String[2 + contest.problems.size()];
+		columns[0] = "Name";
+		columns[columns.length - 1] = "Total";
+		for (int i = 0; i < contest.problems.size(); i++)
+		{
+			columns[1 + i] = contest.problems.get(contest.problems.keySet().toArray()[i]).name;
+		}
+		leaderboard = new JTable(new Object[1][columns.length], columns);
+		JScrollPane scrollPane = new JScrollPane(leaderboard);
+		leaderboard.setFillsViewportHeight(true);
+		frame.getContentPane().setLayout(new BorderLayout());
+		JLabel head = new JLabel("Computer Science Club");
+		try
+		{
+			head = new JLabel("Computer Science Club             IP: " + InetAddress.getLocalHost().getHostAddress());
+		}
+		catch (UnknownHostException e)
+		{
+			e.printStackTrace();
+		}
+		head.setFont(head.getFont().deriveFont(30.0f));
+		JButton start = new JButton("Start Contest");
+		start.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				if (!contest_in_progress)
+				{
+					ServerThread thread = new ServerThread();
+					thread.start();
+				}
+			}
+			@Override
+			public void mousePressed(MouseEvent e) {}
+			@Override
+			public void mouseReleased(MouseEvent e) {}
+			@Override
+			public void mouseEntered(MouseEvent e) {}
+			@Override
+			public void mouseExited(MouseEvent e) {}
+		});
+		frame.getContentPane().add(head, BorderLayout.PAGE_START);
+		frame.getContentPane().add(scrollPane, BorderLayout.CENTER);
+		frame.getContentPane().add(start, BorderLayout.PAGE_END);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack();
+		frame.setSize(800, 600);
 		frame.setVisible(true);
+	}
+	
+	public static void updateLeaderboard()
+	{
+		String[] columns = new String[2 + contest.problems.size()];
+		columns[0] = "Name";
+		columns[columns.length - 1] = "Total";
+		final int lastColumn = columns.length - 1;
+		for (int i = 0; i < contest.problems.size(); i++)
+		{
+			columns[1 + i] = contest.problems.get(contest.problems.keySet().toArray()[i]).name;
+		}
+		String[][] data = new String[contestants.size()][columns.length];
+		ArrayList<String[]> c = new ArrayList<String[]>();
+		for (int i = 0; i < contestants.size(); i++)
+		{
+			c.add(contestants.get(contestants.keySet().toArray()[i]).asStringArray());
+		}
+		Collections.sort(c, new Comparator<String[]>() {
+			@Override
+			public int compare(String[] o1, String[] o2)
+			{
+				return o1[lastColumn].compareTo(o2[lastColumn]);
+			}
+		});
+		for (int i = 0; i < data.length; i++)
+		{
+			data[i] = c.get(i);
+		}
+		for (int i = 0; i < data.length; i++)
+		{
+			for (int j = 0; j < data[0].length; j++)
+			{
+				leaderboard.setValueAt(data[i][j], i, j);
+			}
+		}
+	}
+}
+class Contestant
+{
+	int[] scores;
+	String name;
+	
+	public Contestant(int noProblems, String n)
+	{
+		scores = new int[noProblems];
+		name = n;
+	}
+	
+	public String[] asStringArray()
+	{
+		String[] r = new String[2 + scores.length];
+		r[0] = name;
+		int total = 0;
+		for (int i = 0; i < scores.length; i++)
+		{
+			total += scores[i];
+			r[1 + i] = "" + scores[i];
+		}
+		r[r.length - 1] = "" + total;
+		return r;
+	}
+	
+	public void setScore(int i, int s)
+	{
+		scores[i] = s;
 	}
 }
 class User {
@@ -108,6 +225,8 @@ class User {
 				String fileName = readLine(socket_input);
 				byte[] fileArray = new byte[Integer.parseInt(readLine(socket_input))];
 				
+				int probNo = problem.num;
+				
 				socket_input.read(fileArray, 0, fileArray.length);
 				new File("Submissions/"+name).mkdirs();
 				BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("Submissions/"+name+"/"+fileName));
@@ -131,7 +250,7 @@ class User {
 				    out.close();
 				    BufferedReader in = new BufferedReader(new InputStreamReader(execute.getInputStream()));
 				    fin = new BufferedReader(new FileReader(problem.path+"/"+problem.output_file_names[caseNo]));
-				    if(!problem.path.equals("Problem 3")){
+//				    if(!problem.path.equals("Problem 3")){
 				    	boolean working = true;
 					    while ((line = fin.readLine()) != null && working) {
 					        if(!line.equals(in.readLine())){
@@ -142,10 +261,10 @@ class User {
 					    	passed++;
 					    in.close();
 					    fin.close();
-				    }else{
-				    	if(results[caseNo] = check_p3(in, fin))
-				    		passed++;
-				    }
+//				    }else{
+//				    	if(results[caseNo] = check_p3(in, fin))
+//				    		passed++;
+//				    }
 				    in = new BufferedReader(new InputStreamReader(execute.getErrorStream()));
 				    line = in.readLine();
 				    responses[caseNo] = ("Case #" + (caseNo + 1) + ": ");
@@ -159,6 +278,7 @@ class User {
 				    execute.waitFor();
 			    }
 			    score = (int) (problem.weight*passed+(Server.contest.end_time - submission_time)/300000);
+			    if (passed == 0) score = 0;
 			    socket_output.write((passed + "/" + problem.input_file_names.length + "\n").getBytes());
 			    int old_score = 0;
 			    BufferedReader file_reader = null;
@@ -175,6 +295,16 @@ class User {
 				    file_writer.close();
 			    }
 			    System.out.println(name+": "+problem.name+" "+passed + "/" + problem.input_file_names.length+" "+score);
+			    if (Server.contestants.containsKey(name))
+			    {
+			    	Server.contestants.get(name).scores[probNo] = Math.max(score, Server.contestants.get(name).scores[probNo]); 
+			    }
+			    else
+			    {
+			    	Server.contestants.put(name, new Contestant(Server.contest.problems.size(), name));
+			    	Server.contestants.get(name).scores[probNo] = score;
+			    }
+			    Server.updateLeaderboard();
 			} catch (Exception e) {
 				e.printStackTrace();
 				socket_output.write(("There was an exception\n").getBytes());
@@ -187,29 +317,29 @@ class User {
 			purge();
 		}
 	}
-	public boolean check_p3(BufferedReader in, BufferedReader fin){
-		try{
-			ArrayList<Quple> groups = new ArrayList<Quple>();
-			String line;
-			while ((line = fin.readLine()) != null) {
-				groups.add(new Quple(line));
-			}
-			fin.close();
-			boolean working = true;
-			while ((line = in.readLine()) != null && working) {
-				for(Quple group: groups)
-					if(!group.check(line))
-						working = false;
-			}
-			for(Quple group: groups)
-				if(!group.matched)
-					working = false;
-			in.close();
-			return working;
-		}catch(Exception e){
-			return false;
-		}
-	}
+//	public boolean check_p3(BufferedReader in, BufferedReader fin){
+//		try{
+//			ArrayList<Quple> groups = new ArrayList<Quple>();
+//			String line;
+//			while ((line = fin.readLine()) != null) {
+//				groups.add(new Quple(line));
+//			}
+//			fin.close();
+//			boolean working = true;
+//			while ((line = in.readLine()) != null && working) {
+//				for(Quple group: groups)
+//					if(!group.check(line))
+//						working = false;
+//			}
+//			for(Quple group: groups)
+//				if(!group.matched)
+//					working = false;
+//			in.close();
+//			return working;
+//		}catch(Exception e){
+//			return false;
+//		}
+//	}
 	public String readLine(InputStream is) {
 		String ans = "";
 		while (true) {
@@ -226,26 +356,26 @@ class User {
 		return ans;
 	}
 }
-class Quple{
-	String[] e;
-	boolean matched;
-	Quple(String str){
-		e = str.split(", ");
-	}
-	boolean check(String s) throws Exception{
-		String[] f = s.split(", ");
-		boolean b = true;
-		for(int a = 0; b&&a < 4; a++){
-			b = false;
-			for(int c = 0; !b&&c < 4; c++){
-				if(e[a].equals(f[c]))
-					b = true;
-			}
-		}
-		if(b) matched = true;
-		return b;
-	}
-}
+//class Quple{
+//	String[] e;
+//	boolean matched;
+//	Quple(String str){
+//		e = str.split(", ");
+//	}
+//	boolean check(String s) throws Exception{
+//		String[] f = s.split(", ");
+//		boolean b = true;
+//		for(int a = 0; b&&a < 4; a++){
+//			b = false;
+//			for(int c = 0; !b&&c < 4; c++){
+//				if(e[a].equals(f[c]))
+//					b = true;
+//			}
+//		}
+//		if(b) matched = true;
+//		return b;
+//	}
+//}
 class Contest{
 	String path;
 	long end_time;
@@ -262,18 +392,26 @@ class Contest{
 		{
 			br = new BufferedReader(new FileReader(filename));
 			end_time = System.currentTimeMillis() + Long.parseLong(br.readLine());
-			String name = br.readLine();
-			String reference = br.readLine();
-			String probPath = br.readLine();
-			int weight = Integer.parseInt(br.readLine());
-			String[] inFiles = new String[Integer.parseInt(br.readLine())];
-			String[] outFiles = new String[inFiles.length];
-			for (int i = 0; i < inFiles.length; i++) {
-				String file = br.readLine();
-				inFiles[i] = file + ".in";
-				outFiles[i] = file + ".out";
+			int probNo = 0;
+			while (true)
+			{
+				String name = br.readLine();
+				if (name == null)
+				{
+					break;
+				}
+				String reference = br.readLine();
+				String probPath = br.readLine();
+				int weight = Integer.parseInt(br.readLine());
+				String[] inFiles = new String[Integer.parseInt(br.readLine())];
+				String[] outFiles = new String[inFiles.length];
+				for (int i = 0; i < inFiles.length; i++) {
+					String file = br.readLine();
+					inFiles[i] = file + ".in";
+					outFiles[i] = file + ".out";
+				}
+				problems.put(reference, new Problem(probPath, name, weight, probNo++, inFiles, outFiles));
 			}
-			problems.put(reference, new Problem(probPath, name, weight, inFiles, outFiles));
 		}
 		catch (Exception e)
 		{
@@ -287,82 +425,87 @@ class Problem{
 	String[] input_file_names;
 	String[] output_file_names;
 	int weight;
-	Problem(String path, String name, int weight, String[] input_file_names, String[] output_file_names){
+	int num;
+	Problem(String path, String name, int weight, int num, String[] input_file_names, String[] output_file_names){
 		this.path = path;
 		this.name = name;
+		this.num = num;
 		this.input_file_names = input_file_names;
 		this.output_file_names = output_file_names;
 		this.weight = weight;
 	}
 }
-class Frame extends JFrame{
-	Frame(){
-		super("Computer Science Club Contest");
-		add(new Standings_Panel());
-	}
-}
-class Standings_Panel extends JPanel {
-	static final int WIDTH = 1024, HEIGHT = 576;
-	Standings_Panel() {
-		setPreferredSize(new Dimension(WIDTH, HEIGHT));
-		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-		
-		setBounds(100, 100, 1024, 576);
-		JPanel contentPane = new JPanel();
-		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-		contentPane.setLayout(new BorderLayout(0, 0));
-		add(contentPane);
-		
-		JPanel headerPanel = new JPanel();
-		contentPane.add(headerPanel, BorderLayout.NORTH);
-		headerPanel.setLayout(new BorderLayout(0, 0));
-		
-		JLabel title = new JLabel("Computer Science Club");
-		title.setFont(new Font("Dialog", Font.PLAIN, 42));
-		headerPanel.add(title, BorderLayout.CENTER);
-		
-		JLabel ipAddress = new JLabel();
-		try {
-			ipAddress.setText("IP Address: " + InetAddress.getLocalHost().getHostAddress());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		ipAddress.setFont(new Font("Dialog", Font.PLAIN, 20));
-		headerPanel.add(ipAddress, BorderLayout.SOUTH);
-		
-		JPanel bodyPanel = new JPanel();
-		contentPane.add(bodyPanel, BorderLayout.CENTER);
-		
-		JTable leaderboard = new JTable() {
-			public boolean isCellEditable(int row, int column) {
-				return false;
-			}
-		};
-		bodyPanel.add(leaderboard);
-		
-		JPanel buttonPanel = new JPanel();
-		contentPane.add(buttonPanel, BorderLayout.SOUTH);
-		
-		JButton startContest = new JButton("Start Contest");
-		startContest.setFont(UIManager.getFont("CheckBoxMenuItem.acceleratorFont"));
-		startContest.addMouseListener(new MouseListener() {
-			@Override
-			public void mouseClicked(MouseEvent e)
-			{
-				Server.contest_in_progress = true;
-				Server.ServerThread thread = new Server.ServerThread();
-				thread.start();
-			}
-
-			@Override
-			public void mousePressed(MouseEvent e) {}
-			@Override
-			public void mouseReleased(MouseEvent e) {}
-			@Override
-			public void mouseEntered(MouseEvent e) {}
-			@Override
-			public void mouseExited(MouseEvent e) {}
-		});
-		buttonPanel.add(startContest);
-	}
-}
+//class Frame extends JFrame{
+//	Standings_Panel sp;
+//	Frame(){
+//		super("Computer Science Club Contest");
+//		sp = new Standings_Panel();
+//		add(sp);
+//	}
+//}
+//class Standings_Panel extends JPanel {
+//	JTable leaderboard;
+//	static final int WIDTH = 1024, HEIGHT = 576;
+//	Standings_Panel() {
+//		setPreferredSize(new Dimension(WIDTH, HEIGHT));
+//		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+//		
+//		setBounds(100, 100, 1024, 576);
+//		JPanel contentPane = new JPanel();
+//		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+//		contentPane.setLayout(new BorderLayout(0, 0));
+//		add(contentPane);
+//		
+//		JPanel headerPanel = new JPanel();
+//		contentPane.add(headerPanel, BorderLayout.NORTH);
+//		headerPanel.setLayout(new BorderLayout(0, 0));
+//		
+//		JLabel title = new JLabel("Computer Science Club");
+//		title.setFont(new Font("Dialog", Font.PLAIN, 42));
+//		headerPanel.add(title, BorderLayout.CENTER);
+//		
+//		JLabel ipAddress = new JLabel();
+//		try {
+//			ipAddress.setText("IP Address: " + InetAddress.getLocalHost().getHostAddress());
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//		ipAddress.setFont(new Font("Dialog", Font.PLAIN, 20));
+//		headerPanel.add(ipAddress, BorderLayout.SOUTH);
+//		
+//		JPanel bodyPanel = new JPanel();
+//		contentPane.add(bodyPanel, BorderLayout.CENTER);
+//		
+//		leaderboard = new JTable() {
+//			public boolean isCellEditable(int row, int column) {
+//				return false;
+//			}
+//		};
+//		bodyPanel.add(leaderboard);
+//		
+//		JPanel buttonPanel = new JPanel();
+//		contentPane.add(buttonPanel, BorderLayout.SOUTH);
+//		
+//		JButton startContest = new JButton("Start Contest");
+//		startContest.setFont(UIManager.getFont("CheckBoxMenuItem.acceleratorFont"));
+//		startContest.addMouseListener(new MouseListener() {
+//			@Override
+//			public void mouseClicked(MouseEvent e)
+//			{
+//				Server.contest_in_progress = true;
+//				Server.ServerThread thread = new Server.ServerThread();
+//				thread.start();
+//			}
+//
+//			@Override
+//			public void mousePressed(MouseEvent e) {}
+//			@Override
+//			public void mouseReleased(MouseEvent e) {}
+//			@Override
+//			public void mouseEntered(MouseEvent e) {}
+//			@Override
+//			public void mouseExited(MouseEvent e) {}
+//		});
+//		buttonPanel.add(startContest);
+//	}
+//}
