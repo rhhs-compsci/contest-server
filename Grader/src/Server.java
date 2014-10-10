@@ -14,17 +14,6 @@ public class Server {
 	public static Contest contest = new Contest("Contest4.txt");
 	public static JTable leaderboard;
 	public static ArrayList<String> columns;
-//	public static Contest contest = new Contest("Contest3", 1412284273947L);
-//	static{
-//		
-//		contest.problems.put("bear", new Problem("Contest1/Problem 1", "Problem 1", 10, new String[]{"j1.1.in", "j1.2.in", "j1.3.in", "j1.4.in", "j1.5.in", "j1.6.in", "j1.7.in", "j1.8.in", "j1.9.in", "j1.10.in"}, new String[]{"j1.1.out", "j1.2.out", "j1.3.out", "j1.4.out", "j1.5.out", "j1.6.out", "j1.7.out", "j1.8.out", "j1.9.out", "j1.10.out"}));
-//		contest.problems.put("rsa", new Problem("Contest1/Problem 2", "Problem 2", 20, new String[]{"j2.1.in", "j2.2.in", "j2.3.in", "j2.4.in", "j2.5.in", "j2.6.in", "j2.7.in", "j2.8.in", "j2.9.in", "j2.10.in"}, new String[]{"j2.1.out", "j2.2.out", "j2.3.out", "j2.4.out", "j2.5.out", "j2.6.out", "j2.7.out", "j2.8.out", "j2.9.out", "j2.10.out"}));
-//		contest.problems.put("four-word", new Problem("Contest1/Problem 3", "Problem 3", 50, new String[]{"j3.1.in"}, new String[]{"j3.1.out"}));
-//		contest.problems.put("cold", new Problem("Contest2/p1", "It's Cold Here!", 10, new String[]{"p1.1.in", "p1.2.in", "p1.3.in", "p1.4.in", "p1.5.in"}, new String[]{"p1.1.out", "p1.2.out", "p1.3.out", "p1.4.out", "p1.5.out"}));
-//		contest.problems.put("icon", new Problem("Contest2/p2", "Icon Scaling", 20, new String[]{"p2.1.in", "p2.2.in", "p2.3.in", "p2.4.in", "p2.5.in"}, new String[]{"p2.1.out", "p2.2.out", "p2.3.out", "p2.4.out", "p2.5.out"}));
-//		contest.problems.put("friends", new Problem("Contest2/p3", "Friends", 50, new String[]{"p3.1.in", "p3.2.in", "p3.3.in", "p3.4.in", "p3.5.in"}, new String[]{"p3.1.out", "p3.2.out", "p3.3.out", "p3.4.out", "p3.5.out"}));
-//
-//	}
 	public static boolean contest_in_progress = false;
 	public static class ServerThread extends Thread {
 		@Override
@@ -33,7 +22,6 @@ public class Server {
 				InetAddress host_address = InetAddress.getLocalHost();
 				ServerSocket server_socket = new ServerSocket(63400, 0, host_address);
 				System.out.println(host_address);
-				//long end_time = contest.length+System.currentTimeMillis();
 				contest_in_progress = true;
 				while(contest_in_progress){
 					if(System.currentTimeMillis() > contest.end_time){
@@ -61,10 +49,6 @@ public class Server {
 		}
 	};
 	public static void main(String[] args){
-//		Frame frame = new Frame();
-//		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//		frame.pack();
-//		frame.setVisible(true);
 		JFrame frame = new JFrame("Computer Science Club Contest");
 		columns.add(0, "Name");
 		columns.add("Total");
@@ -196,13 +180,6 @@ class User {
 			int probNo = 0;
 			String username = "";
 			try {
-				
-//				BufferedReader br = new BufferedReader(new InputStreamReader(socket_input));
-//				String name = br.readLine();
-//				Problem problem = Server.contest.problems.get(br.readLine());
-//				byte[] file_array = new byte [Integer.parseInt(br.readLine())];
-//				String file_name = br.readLine();
-				
 				username = readLine(socket_input).replace(" ", "_");
 				if(username.indexOf('/')!=-1||username.indexOf('\\')!=-1){
 					socket_output.write(("Invalid Team Name\n").getBytes());
@@ -437,77 +414,3 @@ class Problem{
 		this.weight = weight;
 	}
 }
-//class Frame extends JFrame{
-//	Standings_Panel sp;
-//	Frame(){
-//		super("Computer Science Club Contest");
-//		sp = new Standings_Panel();
-//		add(sp);
-//	}
-//}
-//class Standings_Panel extends JPanel {
-//	JTable leaderboard;
-//	static final int WIDTH = 1024, HEIGHT = 576;
-//	Standings_Panel() {
-//		setPreferredSize(new Dimension(WIDTH, HEIGHT));
-//		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-//		
-//		setBounds(100, 100, 1024, 576);
-//		JPanel contentPane = new JPanel();
-//		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-//		contentPane.setLayout(new BorderLayout(0, 0));
-//		add(contentPane);
-//		
-//		JPanel headerPanel = new JPanel();
-//		contentPane.add(headerPanel, BorderLayout.NORTH);
-//		headerPanel.setLayout(new BorderLayout(0, 0));
-//		
-//		JLabel title = new JLabel("Computer Science Club");
-//		title.setFont(new Font("Dialog", Font.PLAIN, 42));
-//		headerPanel.add(title, BorderLayout.CENTER);
-//		
-//		JLabel ipAddress = new JLabel();
-//		try {
-//			ipAddress.setText("IP Address: " + InetAddress.getLocalHost().getHostAddress());
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
-//		ipAddress.setFont(new Font("Dialog", Font.PLAIN, 20));
-//		headerPanel.add(ipAddress, BorderLayout.SOUTH);
-//		
-//		JPanel bodyPanel = new JPanel();
-//		contentPane.add(bodyPanel, BorderLayout.CENTER);
-//		
-//		leaderboard = new JTable() {
-//			public boolean isCellEditable(int row, int column) {
-//				return false;
-//			}
-//		};
-//		bodyPanel.add(leaderboard);
-//		
-//		JPanel buttonPanel = new JPanel();
-//		contentPane.add(buttonPanel, BorderLayout.SOUTH);
-//		
-//		JButton startContest = new JButton("Start Contest");
-//		startContest.setFont(UIManager.getFont("CheckBoxMenuItem.acceleratorFont"));
-//		startContest.addMouseListener(new MouseListener() {
-//			@Override
-//			public void mouseClicked(MouseEvent e)
-//			{
-//				Server.contest_in_progress = true;
-//				Server.ServerThread thread = new Server.ServerThread();
-//				thread.start();
-//			}
-//
-//			@Override
-//			public void mousePressed(MouseEvent e) {}
-//			@Override
-//			public void mouseReleased(MouseEvent e) {}
-//			@Override
-//			public void mouseEntered(MouseEvent e) {}
-//			@Override
-//			public void mouseExited(MouseEvent e) {}
-//		});
-//		buttonPanel.add(startContest);
-//	}
-//}
