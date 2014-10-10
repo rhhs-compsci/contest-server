@@ -12,8 +12,8 @@ public class Server {
 	public static ArrayList<User> users = new ArrayList<User>();
 	public static ArrayList<Contestant> contestants = new ArrayList<Contestant>();
 	public static Contest contest = new Contest("Contest4.txt");
-	public static JFrame frame;
 	public static JTable leaderboard;
+	public static ArrayList<String> columns;
 //	public static Contest contest = new Contest("Contest3", 1412284273947L);
 //	static{
 //		
@@ -65,15 +65,10 @@ public class Server {
 //		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 //		frame.pack();
 //		frame.setVisible(true);
-		frame = new JFrame("Computer Science Club Contest");
-		String[] columns = new String[2 + contest.problems.size()];
-		columns[0] = "Name";
-		columns[columns.length - 1] = "Total";
-		for (int i = 0; i < contest.problems.size(); i++)
-		{
-			columns[1 + i] = contest.problems.get(contest.problems.keySet().toArray()[i]).name;
-		}
-		leaderboard = new JTable(new DefaultTableModel(columns, 0));
+		JFrame frame = new JFrame("Computer Science Club Contest");
+		columns.add(0, "Name");
+		columns.add("Total");
+		leaderboard = new JTable(new DefaultTableModel(columns.toArray(), 0));
 		JScrollPane scrollPane = new JScrollPane(leaderboard);
 		leaderboard.setFillsViewportHeight(true);
 		frame.getContentPane().setLayout(new BorderLayout());
@@ -118,14 +113,6 @@ public class Server {
 	
 	public static void updateLeaderboard()
 	{
-		String[] columns = new String[2 + contest.problems.size()];
-		columns[0] = "Name";
-		columns[columns.length - 1] = "Total";
-		final int lastColumn = columns.length - 1;
-		for (int i = 0; i < contest.problems.size(); i++)
-		{
-			columns[1 + i] = contest.problems.get(contest.problems.keySet().toArray()[i]).name;
-		}
 		Collections.sort(contestants, new Comparator<Contestant>() {
 			@Override
 			public int compare(Contestant o1, Contestant o2)
@@ -140,7 +127,7 @@ public class Server {
 				{
 					sum2 += o2.scores[i];
 				}
-				return sum1.compareTo(sum2);
+				return sum2.compareTo(sum1);
 			}
 		});
 		DefaultTableModel model = (DefaultTableModel) leaderboard.getModel();
@@ -150,7 +137,7 @@ public class Server {
 		}
 		for (int i = 0; i < contestants.size(); i++)
 		{
-			model.addRow(contestants.toArray());
+			model.addRow(contestants.get(i).asStringArray());
 		}
 	}
 }
@@ -206,6 +193,8 @@ class User {
 				socket_input = socket.getInputStream();
 			OutputStream socket_output = socket.getOutputStream();
 			int score = 0;
+			int probNo = 0;
+			String username = "";
 			try {
 				
 //				BufferedReader br = new BufferedReader(new InputStreamReader(socket_input));
@@ -214,8 +203,8 @@ class User {
 //				byte[] file_array = new byte [Integer.parseInt(br.readLine())];
 //				String file_name = br.readLine();
 				
-				String name = readLine(socket_input).replace(" ", "_");
-				if(name.indexOf('/')!=-1||name.indexOf('\\')!=-1){
+				username = readLine(socket_input).replace(" ", "_");
+				if(username.indexOf('/')!=-1||username.indexOf('\\')!=-1){
 					socket_output.write(("Invalid Team Name\n").getBytes());
 					return;
 				}
@@ -223,22 +212,22 @@ class User {
 				String fileName = readLine(socket_input);
 				byte[] fileArray = new byte[Integer.parseInt(readLine(socket_input))];
 				
-				int probNo = problem.num;
+				probNo = problem.num;
 				
 				socket_input.read(fileArray, 0, fileArray.length);
-				new File("Submissions/"+name).mkdirs();
-				BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("Submissions/"+name+"/"+fileName));
+				new File("Submissions/"+username).mkdirs();
+				BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("Submissions/"+username+"/"+fileName));
 				bos.write(fileArray, 0, fileArray.length);
 				bos.close();
 				
-				Process compile = Runtime.getRuntime().exec("javac Submissions/"+name+"/"+fileName);
+				Process compile = Runtime.getRuntime().exec("javac Submissions/"+username+"/"+fileName);
 				compile.waitFor();
 				
 			    int passed = 0;
 			    boolean[] results = new boolean[problem.input_file_names.length];
 			    String[] responses = new String[problem.input_file_names.length];
 			    for(int caseNo = 0; caseNo < problem.input_file_names.length; caseNo++){
-					Process execute =  Runtime.getRuntime().exec("java -classpath Submissions/"+name+" "+fileName.substring(0, fileName.lastIndexOf('.')));
+					Process execute =  Runtime.getRuntime().exec("java -classpath Submissions/"+username+" "+fileName.substring(0, fileName.lastIndexOf('.')));
 					String line = null;
 					PrintWriter out = new PrintWriter(new OutputStreamWriter(execute.getOutputStream()));
 				    BufferedReader fin = new BufferedReader(new FileReader(problem.path+"/"+problem.input_file_names[caseNo]));
@@ -278,46 +267,47 @@ class User {
 			    score = (int) (problem.weight*passed+(Server.contest.end_time - submission_time)/300000);
 			    if (passed == 0) score = 0;
 			    socket_output.write((passed + "/" + problem.input_file_names.length + "\n").getBytes());
-			    int old_score = 0;
-			    BufferedReader file_reader = null;
-			    try{
-			    	file_reader = new BufferedReader(new FileReader("Submissions/"+name+"/"+problem.name+".txt"));
-			    	old_score = Integer.parseInt(file_reader.readLine());	    
-			    }catch(FileNotFoundException e){}
-			    if(file_reader!=null)file_reader.close();
-			    if(score>old_score){
-				    PrintWriter file_writer = new PrintWriter("Submissions/"+name+"/"+problem.name+".txt");
-				    file_writer.println(score);
-				    for(int i = 0; i < problem.input_file_names.length; i++)
-				    	file_writer.println(responses[i]);
-				    file_writer.close();
-			    }
-			    System.out.println(name+": "+problem.name+" "+passed + "/" + problem.input_file_names.length+" "+score);
-			    boolean exists = false;
-			    int index = 0;
-			    for (int i = 0; i < Server.contestants.size(); i++)
-			    {
-			    	if (Server.contestants.get(i).name.equals(name))
-			    	{
-			    		exists = true;
-			    		index = i;
-			    		break;
-			    	}
-			    }
-			    if (exists)
-			    {
-			    	Server.contestants.get(index).scores[probNo] = Math.max(score, Server.contestants.get(index).scores[probNo]); 
-			    }
-			    else
-			    {
-			    	Server.contestants.add(new Contestant(Server.contest.problems.size(), name));
-			    	Server.contestants.get(Server.contestants.size() - 1).scores[probNo] = score;
-			    }
-			    Server.updateLeaderboard();
+//			    int old_score = 0;
+//			    BufferedReader file_reader = null;
+//			    try{
+//			    	file_reader = new BufferedReader(new FileReader("Submissions/"+username+"/"+problem.name+".txt"));
+//			    	old_score = Integer.parseInt(file_reader.readLine());	    
+//			    }catch(FileNotFoundException e){}
+//			    if(file_reader!=null)file_reader.close();
+//			    if(score>old_score){
+//				    PrintWriter file_writer = new PrintWriter("Submissions/"+username+"/"+problem.name+".txt");
+//				    file_writer.println(score);
+//				    for(int i = 0; i < problem.input_file_names.length; i++)
+//				    	file_writer.println(responses[i]);
+//				    file_writer.close();
+//			    }
+			    System.out.println(username+": "+problem.name+" "+passed + "/" + problem.input_file_names.length+" "+score);
+			    
 			} catch (Exception e) {
 				e.printStackTrace();
 				socket_output.write(("There was an exception\n").getBytes());
 			}
+			boolean exists = false;
+		    int index = 0;
+		    for (int i = 0; i < Server.contestants.size(); i++)
+		    {
+		    	if (Server.contestants.get(i).name.equals(username))
+		    	{
+		    		exists = true;
+		    		index = i;
+		    		break;
+		    	}
+		    }
+		    if (exists)
+		    {
+		    	Server.contestants.get(index).scores[probNo] = Math.max(score, Server.contestants.get(index).scores[probNo]); 
+		    }
+		    else
+		    {
+		    	Server.contestants.add(new Contestant(Server.contest.problems.size(), username));
+		    	Server.contestants.get(Server.contestants.size() - 1).scores[probNo] = score;
+		    }
+		    Server.updateLeaderboard();
 			socket_output.write(("Your score for this problem is: " +score+"\n").getBytes());
 		    socket_output.write((byte)'\u0004');
 			} catch (IOException e1) {
@@ -396,6 +386,7 @@ class Contest{
 	}
 	Contest(String filename) {
 		problems = new HashMap<String, Problem>();
+		Server.columns = new ArrayList<String>();
 		BufferedReader br;
 		try
 		{
@@ -421,6 +412,7 @@ class Contest{
 				}
 				problems.put(reference, new Problem(probPath, name, weight, probNo, inFiles, outFiles));
 				probNo++;
+				Server.columns.add(name);
 			}
 		}
 		catch (Exception e)
