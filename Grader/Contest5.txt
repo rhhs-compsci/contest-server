@@ -1,0 +1,23 @@
+3600000
+Deal or No Deal Calculator
+deal
+Contest5/Problem1
+20
+5
+j3.1
+j3.2
+j3.3
+j3.4
+j3.5
+Anagram Checker
+anagram
+Contest5/Problem2
+20
+7
+j4.1a
+j4.1b
+j4.2a
+j4.2b
+j4.3a
+j4.3b
+j4.4
